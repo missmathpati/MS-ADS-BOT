@@ -77,6 +77,39 @@ The app will open in your browser. Enter questions about the MS-ADS program in t
 - OpenAI API key
 - RAG index files in `rag_index/` directory
 
+## Deployment
+
+To deploy this app so others can access it via a public URL:
+
+### Quick Deploy to Streamlit Community Cloud (Recommended)
+
+1. **Push your code to GitHub**:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   git push -u origin main
+   ```
+
+2. **Deploy to Streamlit Community Cloud**:
+   - Go to [share.streamlit.io](https://share.streamlit.io)
+   - Sign in with GitHub
+   - Click "New app"
+   - Select your repository and branch
+   - Set main file path to `app.py`
+   - Click "Deploy"
+
+3. **Add OpenAI API Key**:
+   - In app Settings → Secrets, add:
+     ```toml
+     OPENAI_API_KEY = "sk-your-api-key-here"
+     ```
+
+4. **Share your app URL**: `https://YOUR_APP_NAME.streamlit.app`
+
+📖 **Detailed deployment guide**: See [DEPLOYMENT.md](DEPLOYMENT.md) for step-by-step instructions and troubleshooting.
+
 ---
 
 **Note**: This project was developed for the University of Chicago MS in Applied Data Science program as part of a Generative AI course.

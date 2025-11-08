@@ -1095,14 +1095,45 @@ def load_chroma_and_meta(chroma_dir: Path, embed_model_name: str):
     
     # Setup ChromaDB
     CHROMA_DIR.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(chroma_dir))
-    
-    # Create or get collection
-    collection = client.get_or_create_collection(
-        name="msads_e5",
-        metadata={"hnsw:space": "cosine"},
-        embedding_function=E5Embedder(model)
-    )
+    try:
+        # Try new API (ChromaDB 0.4.0+)
+        client = chromadb.PersistentClient(path=str(chroma_dir))
+        # Access default tenant and database
+        try:
+            db = client.get_or_create_database("default_database")
+            collection = db.get_or_create_collection(
+                name="msads_e5",
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=E5Embedder(model)
+            )
+        except AttributeError:
+            # Fallback: try direct collection access (older API or different version)
+            collection = client.get_or_create_collection(
+                name="msads_e5",
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=E5Embedder(model)
+            )
+    except Exception as e:
+        # If that fails, try with explicit tenant
+        try:
+            client = chromadb.PersistentClient(
+                path=str(chroma_dir),
+                tenant="default_tenant",
+                database="default_database"
+            )
+            collection = client.get_or_create_collection(
+                name="msads_e5",
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=E5Embedder(model)
+            )
+        except Exception:
+            # Last resort: try without tenant/database params
+            client = chromadb.PersistentClient(path=str(chroma_dir))
+            collection = client.get_or_create_collection(
+                name="msads_e5",
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=E5Embedder(model)
+            )
     
     # Load metadata if available
     META = []
@@ -1339,15 +1370,31 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 # Check for OpenAI API key
+# Initialize session state for API key if not exists
+if "api_key" not in st.session_state:
+    env_key = os.getenv("OPENAI_API_KEY", "")
+    st.session_state.api_key = env_key
+
+# Get API key from environment first, then check session state
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
+    # Check session state
+    api_key = st.session_state.api_key if st.session_state.api_key else ""
+    
+    # Use session state to persist the API key
     api_key = st.sidebar.text_input(
         "OpenAI API Key",
         type="password",
+        value=api_key,
+        key="openai_api_key_input",
         help="Enter your OpenAI API key or set OPENAI_API_KEY environment variable"
     )
     if api_key:
+        st.session_state.api_key = api_key
         os.environ["OPENAI_API_KEY"] = api_key
+else:
+    # If API key is in environment, use it and update session state
+    st.session_state.api_key = api_key
 
 if not api_key:
     st.sidebar.error("⚠️ Please provide an OpenAI API key to use this app.")
